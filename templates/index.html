@@ -2,36 +2,19 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OpenSky Aircraft Data</title>
+    <title>OpenSky Flight States</title>
 </head>
 <body>
-    <h1>OpenSky Aircraft Data</h1>
-    <table border="1">
-        <thead>
-            <tr>
-                <th>ICAO24</th>
-                <th>Callsign</th>
-                <th>Longitude</th>
-                <th>Latitude</th>
-                <th>Baro Altitude</th>
-                <th>Velocity</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for data in aircraft_data %}
-                <tr>
-                    <td>{{ data['icao24'] }}</td>
-                    <td>{{ data['callsign'] }}</td>
-                    <td>{{ data['longitude'] }}</td>
-                    <td>{{ data['latitude'] }}</td>
-                    <td>{{ data['baro_altitude'] }}</td>
-                    <td>{{ data['velocity'] }}</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <h1>OpenSky Flight States</h1>
+    <ul>
+        {% for state in states %}
+            <li>
+                ICAO24: {{ state.icao24 }} | Callsign: {{ state.callsign }}
+                | Latitude: {{ state.latitude }} | Longitude: {{ state.longitude }}
+                | Altitude: {{ state.baro_altitude }} | Velocity: {{ state.velocity }}
+            </li>
+        {% endfor %}
+    </ul>
 </body>
 </html>
-
