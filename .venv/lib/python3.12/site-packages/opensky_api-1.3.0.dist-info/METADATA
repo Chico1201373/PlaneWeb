@@ -1,0 +1,22 @@
+Metadata-Version: 2.1
+Name: opensky-api
+Version: 1.3.0
+Summary: The official OpenSky Network API
+Home-page: https://github.com/openskynetwork/opensky-api
+Author: The OpenSky Network
+Author-email: contact@opensky-network.org
+Maintainer: Markus Fuchs
+Maintainer-email: fuchs@opensky-network.org
+License: GPL
+Classifier: Development Status :: 5 - Stable
+Classifier: Intended Audience :: Developers
+Classifier: Topic :: Scientific/Engineering :: Interface Engine/Protocol Translator
+Classifier: License :: OSI Approved :: GNU General Public License v3 (GPLv3)
+Classifier: Programming Language :: Python :: 2
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.5
+Requires: requests
+Requires-Dist: requests
+
+# PlaneWebApp
