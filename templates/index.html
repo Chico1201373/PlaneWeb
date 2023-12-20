@@ -5,36 +5,192 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Flight States Map</title>
-
-    <!-- Adicione essas linhas para incluir o Leaflet -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
 </head>
 <body>
 
+    {% if error_message %}
+        <div style="color: red;">{{ error_message }}</div>
+    {% endif %}
+
+    {% if success_message %}
+        <div style="color: green;">{{ success_message }}</div>
+    {% endif %}
+
     <h2>Flight States Map</h2>
+    <div id="successMessage"></div>
 
-    <!-- Adicione um contêiner para o mapa -->
-    <div id="map" style="height: 750px;"></div>
+    <div id="errorMessage"></div>
 
-    <!-- Adicione um bloco de script separado -->
-    <script>
-
-        // Use Leaflet para criar o mapa
-        var mymap = L.map('map').setView([0, 0], 2);  // Coordenadas iniciais e nível de zoom
-        // Adicione um provedor de mapeamento do OpenStreetMap
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors'
-        }).addTo(mymap);
-        // Adicione marcadores para as posições dos voos
-        for(var i = 0;i<states.length;i++){
-            var marker = L.marker([states[i].latitude, states[i].longitude]).addTo(mymap);
-        }
+    <div>
+    <label for="countrySelect">Filter planes by country:</label>
+    <select id="countrySelect">
+        {% for country in countries %}
+            <option value="{{ country }}">{{ country }}</option>
+        {% endfor %}
+    </select>
+    <button onclick="filterPlanes(document.getElementById('countrySelect').value)">Filter</button>
+    </div>
 
     
-    </script>
+    
+    
+    <div>
+        <button onclick="atualizarDados()">Atualizar Dados</button>
+    </div>
+    <div id="map" style="height: 750px;"></div>
 
+
+    <script>
+
+        var southWest = L.latLng(-90, -180);
+        var northEast = L.latLng(90, 180);
+        var bounds = L.latLngBounds(southWest, northEast);
+
+        var mymap = L.map('map', {
+            maxBounds: bounds,
+            maxBoundsViscosity: 3.0, 
+            minZoom: 2
+        }).setView([0, 0], 2);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mymap);
+
+        var states_json = JSON.parse('{{ states | tojson  | safe}}');
+
+        var markers = L.markerClusterGroup();
+
+        for(var i = 0; i < states_json.length/1000; i++) {
+         
+            if(states_json[i][3] !== null || states_json[i][4] !== null){
+
+                var marker = L.marker([states_json[i][3], states_json[i][4]], { 
+                    icon: L.icon({
+                        iconUrl: 'static/plane.png', 
+                        iconSize: [32, 32],
+                        iconAnchor: [16, 16],
+                        popupAnchor: [0, -10],
+                        rotationAngle: 100.0
+                    }),
+                    customParam: states_json[i][2].toUpperCase()
+                });
+                marker.bindPopup(`
+                    ICAO24: ${states_json[i][0]}<br>
+                    Callsign: ${states_json[i][1]}<br>
+                    Country: ${states_json[i][2]}<br>
+                    Altitude: ${states_json[i][5]}<br>
+                    Velocity: ${states_json[i][8]}<br>
+                    <button onclick="resetZoom()">Reset Zoom</button>
+                `);
+                markers.addLayer(marker);
+            }
+        }
+
+        mymap.addLayer(markers);
+
+        markers.on('click', function (e) {
+            var clickedBounds = L.latLngBounds(e.latlng, e.latlng);
+            mymap.fitBounds(clickedBounds, { maxZoom: 10 }); 
+        });
+
+        function atualizarDados() {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", "/atualizar_dados", true);
+        xhr.onreadystatechange = function () {
+        if (xhr.status == 200 && xhr.readyState == 4) {
+            var response = JSON.parse(xhr.responseText);
+            if (response.success_message) {
+                document.getElementById('successMessage').innerHTML = '<div style="color: green;">' + response.success_message + '</div>';
+                fetchFlightStates();
+            } else if (response.error_message) {
+                document.getElementById('errorMessage').innerHTML = '<div style="color: red;">' + response.error_message + '</div>';
+            }
+                }
+            };
+            xhr.send();
+        }
+
+        function filterPlanes(filterText) {
+            mymap.removeLayer(markers);
+            markers.clearLayers(); 
+            for(var i = 0; i < states_json.length/1000; i++) {
+                if (states_json[i][3] !== null || states_json[i][4] !== null) {
+                    if (!filterText || states_json[i][2].toUpperCase() === filterText.toUpperCase()) {
+                        var marker = L.marker([states_json[i][3], states_json[i][4]], { 
+                            icon: L.icon({
+                                iconUrl: 'static/plane.png', 
+                                iconSize: [32, 32],
+                                iconAnchor: [16, 16],
+                                popupAnchor: [0, -10],
+                            }),
+                            customParam: states_json[i][2].toUpperCase(),
+
+                        });
+                        marker.bindPopup(`
+                        ICAO24: ${states_json[i][0]}<br>
+                        Callsign: ${states_json[i][1]}<br>
+                        Country: ${states_json[i][2]}<br>
+                        Altitude: ${states_json[i][5]}<br>
+                        Velocity: ${states_json[i][8]}<br>
+                        <button onclick="resetZoom()">Reset Zoom</button>
+                        `);
+                        markers.addLayer(marker);
+                    }
+                }
+            }
+            mymap.addLayer(markers);
+        }
+
+        function resetZoom() {
+            mymap.setView([0, 0], 2);
+            markers.eachLayer(function (marker) {
+            if (marker.isPopupOpen()) {
+                marker.closePopup();
+            }
+            });
+        }
+
+        function fetchFlightStates() {
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", "/get_flight_states", true);
+            xhr.onreadystatechange = function () {
+            if (xhr.status == 200 && xhr.readyState == 4) {
+                var statesJson = JSON.parse(xhr.responseText);
+                updateMap(statesJson);
+            }
+            };
+            xhr.send();
+        }
+
+        function updateMap(statesJson) {
+        markers.clearLayers();
+        for(var i = 0; i < states_json.length/1000; i++) {
+         if(states_json[i][3] !== null || states_json[i][4] !== null){
+             var marker = L.marker([states_json[i][3], states_json[i][4]], { 
+                 icon: L.icon({
+                    iconUrl: 'static/plane.png', 
+                    iconSize: [32, 32],
+                    iconAnchor: [16, 16],
+                    popupAnchor: [0, -10],
+                    rotationAngle: 500
+                 }),
+                 customParam: states_json[i][2].toUpperCase()
+             });
+             marker.bindPopup(`
+                    ICAO24: ${states_json[i][0]}<br>
+                    Callsign: ${states_json[i][1]}<br>
+                    Country: ${states_json[i][2]}<br>
+                    Altitude: ${states_json[i][5]}<br>
+                    Velocity: ${states_json[i][8]}<br>
+                    <button onclick="resetZoom()">Reset Zoom</button>
+            `);
+            markers.addLayer(marker);
+        }
+     }
+    }
+    </script>
 </body>
 </html>
-
-

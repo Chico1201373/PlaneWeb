@@ -1,10 +1,18 @@
 from flask import Flask, render_template
 from opensky_api import OpenSkyApi
 import sqlite3
-
+from flask import jsonify
+from config import ENCRYPTED_USERNAME, ENCRYPTED_PASSWORD
 app = Flask(__name__)
 
-# Função para criar a tabela se não existir
+
+def decrypt_credentials(encrypted_username, encrypted_password):
+    username = encrypted_username
+    password = encrypted_password
+    return username, password
+
+username, password = decrypt_credentials(ENCRYPTED_USERNAME, ENCRYPTED_PASSWORD)
+
 def create_table():
     connection = sqlite3.connect("flights.db")
     cursor = connection.cursor()
@@ -25,60 +33,77 @@ def create_table():
             spi INTEGER,
             squawk TEXT,
             alert INTEGER,
+            true_track REAL,
             emergency INTEGER
         )
     ''')
     connection.commit()
 
-async def get_flight_state():
-    api = OpenSkyApi("chicoreis", "123123")
-    #api = OpenSkyApi("chico1", "123123")
-
-    response = api.get_states()
-
-    print(response)
-
-    return response
-
-@app.route('/')
-async def index():
-    # Criar a tabela se não existir
-    create_table()
-
-    # Obter os dados de voo
-    response = await get_flight_state()
-
-    # Carregar os dados da base de dados
+def get_flight_state_base():
     connection = sqlite3.connect("flights.db")
     cursor = connection.cursor()
     cursor.execute('SELECT * FROM flight_states')
     flight_states = cursor.fetchall()
+    connection.close()
+    return flight_states
 
-    for state in response.states:
-        cursor.execute('''
-            INSERT INTO flight_states VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (
-            state.icao24,
-            state.callsign,
-            state.origin_country,
-            state.latitude,
-            state.longitude,
-            state.baro_altitude,
-            state.on_ground,
-            state.true_track,
-            state.velocity,
-            state.vertical_rate,
-            state.sensors,
-            state.time_position,
-            state.spi,
-            state.squawk,
-            state.position_source,
-            state.category
-        ))
+def get_flight_state_api_sync():
+    api = OpenSkyApi(username, password)
+    response = api.get_states()
+    #response.status_code == 200 and 
+    if response and response.states is not None:
+        connection = sqlite3.connect("flights.db")
+        cursor = connection.cursor()
+        for state in response.states:
+            cursor.execute('''
+                INSERT INTO flight_states VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                state.icao24,
+                state.callsign,
+                state.origin_country,
+                state.latitude,
+                state.longitude,
+                state.baro_altitude,
+                state.on_ground,
+                state.true_heading,
+                state.velocity,
+                state.vertical_rate,
+                state.sensors,
+                state.time_position,
+                state.spi,
+                state.squawk,
+                state.alert,
+                state.true_track,
+                state.emergency
+            ))
+        connection.commit()
+        connection.close()
+    
+@app.route('/')
+async def index():
+    create_table()
+    flight_states = get_flight_state_base()
+    unique_countries = set(state[2] for state in flight_states)
+    unique_countries_list = sorted(list(unique_countries))
+    return render_template('index.html', states=flight_states,countries =unique_countries_list )
 
-    connection.commit()
 
-    return render_template('index.html', states=flight_states)
+@app.route('/atualizar_dados')
+def atualizar_dados():
+    current_flight_states = get_flight_state_base()
+    get_flight_state_api_sync()
+    updated_flight_states = get_flight_state_base()
+
+    if current_flight_states != updated_flight_states:
+        return jsonify(success_message="Dados atualizados com sucesso.")
+
+    return jsonify(error_message="Erro: Os dados não foram atualizados.")
+
+
+@app.route('/get_flight_states')
+def get_flight_states():
+    flight_states = get_flight_state_base()
+    return jsonify(states=flight_states)
 
 if __name__ == '__main__':
     app.run(debug=True)
