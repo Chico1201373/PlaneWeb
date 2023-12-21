@@ -78,13 +78,19 @@ def get_flight_state_api_sync():
             ))
         connection.commit()
         connection.close()
-    
+
+def get_countrys():
+    flight_states = get_flight_state_base()
+    unique_countries = set(state[2] for state in flight_states)
+    unique_countries_list = ['Todos os aviões'] + sorted(list(unique_countries))
+    return unique_countries_list
+
 @app.route('/')
 async def index():
     create_table()
+    get_flight_state_api_sync()
     flight_states = get_flight_state_base()
-    unique_countries = set(state[2] for state in flight_states)
-    unique_countries_list = sorted(list(unique_countries))
+    unique_countries_list = get_countrys()
     return render_template('index.html', states=flight_states,countries =unique_countries_list )
 
 
@@ -95,15 +101,17 @@ def atualizar_dados():
     updated_flight_states = get_flight_state_base()
 
     if current_flight_states != updated_flight_states:
-        return jsonify(success_message="Dados atualizados com sucesso.")
-
+        unique_countries_list = get_countrys()
+        return jsonify(success_message="Dados atualizados com sucesso.",states=updated_flight_states,countries =unique_countries_list)
+    
     return jsonify(error_message="Erro: Os dados não foram atualizados.")
 
 
 @app.route('/get_flight_states')
 def get_flight_states():
     flight_states = get_flight_state_base()
-    return jsonify(states=flight_states)
+    unique_countries_list = get_countrys()
+    return jsonify(states=flight_states,countries =unique_countries_list )
 
 if __name__ == '__main__':
     app.run(debug=True)
