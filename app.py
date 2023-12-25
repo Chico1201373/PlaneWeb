@@ -82,8 +82,9 @@ def get_flight_state_api_sync():
 def get_countrys():
     flight_states = get_flight_state_base()
     unique_countries = set(state[2] for state in flight_states)
-    unique_countries_list = ['Todos os aviões'] + sorted(list(unique_countries))
+    unique_countries_list = sorted(list(unique_countries))
     return unique_countries_list
+
 
 @app.route('/')
 async def index():

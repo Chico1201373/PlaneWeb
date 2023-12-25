@@ -25,15 +25,21 @@
     <div id="successMessage"></div>
 
     <div id="errorMessage"></div>
-
     <div>
-    <label for="countrySelect">Filter planes by country:</label>
-    <select id="countrySelect">
-        {% for country in countries %}
+        <h3>Get by ICAO24</h3>
+        <label for="icao24Input">ICAO24:</label>
+        <input type="text" id="icao24Input">
+        <button onclick="getByICAO24()">Get Info</button>
+        <button onclick="resetFilter()">Reset Filter</button>
+    </div>
+    <div>
+        <label for="countrySelect">Filter planes by country:</label>
+        <select id="countrySelect" onchange="filterPlanes()">
+            <option value="Todos os aviões">Todos os aviões</option>
+            {% for country in countries %}
             <option value="{{ country }}">{{ country }}</option>
-        {% endfor %}
-    </select>
-    <button onclick="filterPlanes(document.getElementById('countrySelect').value)">Filter</button>
+            {% endfor %}
+        </select>
     </div>
 
     <div>
@@ -54,13 +60,13 @@
         }).setView([0, 0], 2);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mymap);
-
+        
         var states_json = JSON.parse('{{ states | tojson  | safe}}');
 
         var markers = L.markerClusterGroup();
         console.log(states_json[1])
-            console.log(states_json[2])
-            console.log(states_json[3])
+        console.log(states_json[2])
+        console.log(states_json[3])
         for(var i = 0; i < states_json.length; i++) {
 
 
@@ -74,7 +80,9 @@
                         popupAnchor: [0, -10],
                         rotationAngle: 100.0
                     }),
-                    customParam: states_json[i][2].toUpperCase()
+                    customParam: states_json[i][2].toUpperCase(),
+                    icao24: states_json[i][0]
+
                 });
                 marker.bindPopup(`
                     ICAO24: ${states_json[i][0]}<br>
@@ -95,6 +103,11 @@
             mymap.fitBounds(clickedBounds, { maxZoom: 10 }); 
         });
 
+        function resetFilter() {
+            filterPlanes()
+        }
+
+
         function atualizarDados() {
         var xhr = new XMLHttpRequest();
         xhr.open("GET", "/atualizar_dados", true);
@@ -112,37 +125,77 @@
             };
             xhr.send();
         }
-
-        function filterPlanes(filterText) {
+        
+        function getByICAO24() {
             mymap.removeLayer(markers);
             markers.clearLayers();
+            var filterText = document.getElementById("icao24Input").value;
+
             for (var i = 0; i < states_json.length; i++) {
-            if (states_json[i][3] !== null || states_json[i][4] !== null) {
-            if (!filterText || filterText === 'Todos os aviões' || states_json[i][2].toUpperCase() === filterText.toUpperCase()) {
-                var marker = L.marker([states_json[i][3], states_json[i][4]], {
-                    icon: L.icon({
-                        iconUrl: 'static/plane.png',
-                        iconSize: [32, 32],
-                        iconAnchor: [16, 16],
-                        popupAnchor: [0, -10],
-                    }),
-                    customParam: states_json[i][2].toUpperCase(),
-                });
+                if (states_json[i][3] !== null || states_json[i][4] !== null) {
+                    if (filterText === 'Todos os aviões' || states_json[i][0] === filterText) {
+                        var marker = L.marker([states_json[i][3], states_json[i][4]], {
+                            icon: L.icon({
+                                iconUrl: 'static/plane.png',
+                                iconSize: [32, 32],
+                                iconAnchor: [16, 16],
+                                popupAnchor: [0, -10],
+                            }),
+                            customParam: states_json[i][2].toUpperCase(),
+                            icao24: states_json[i][0]
 
-                marker.bindPopup(`
-                    ICAO24: ${states_json[i][0]}<br>
-                    Callsign: ${states_json[i][1]}<br>
-                    Country: ${states_json[i][2]}<br>
-                    Altitude: ${states_json[i][5]}<br>
-                    Velocity: ${states_json[i][8]}<br>
-                    <button onclick="resetZoom()">Reset Zoom</button>
-                `);
+                        });
 
-                markers.addLayer(marker);
+                        marker.bindPopup(`
+                            ICAO24: ${states_json[i][0]}<br>
+                            Callsign: ${states_json[i][1]}<br>
+                            Country: ${states_json[i][2]}<br>
+                            Altitude: ${states_json[i][5]}<br>
+                            Velocity: ${states_json[i][8]}<br>
+                            <button onclick="resetZoom()">Reset Zoom</button>
+                        `);
+
+                        markers.addLayer(marker);
+                        
+                    }
                 }
             }
+            mymap.addLayer(markers);
         }
-        mymap.addLayer(markers);
+
+        function filterPlanes() {
+            mymap.removeLayer(markers);
+            markers.clearLayers();
+            var select = document.getElementById("countrySelect");
+            var filterText = select.options[select.selectedIndex].value;
+
+            for (var i = 0; i < states_json.length; i++) {
+                if (states_json[i][3] !== null || states_json[i][4] !== null) {
+                    if (filterText === 'Todos os aviões' || states_json[i][2].toUpperCase() === filterText.toUpperCase()) {
+                        var marker = L.marker([states_json[i][3], states_json[i][4]], {
+                            icon: L.icon({
+                                iconUrl: 'static/plane.png',
+                                iconSize: [32, 32],
+                                iconAnchor: [16, 16],
+                                popupAnchor: [0, -10],
+                            }),
+                            customParam: states_json[i][2].toUpperCase(),
+                        });
+
+                        marker.bindPopup(`
+                            ICAO24: ${states_json[i][0]}<br>
+                            Callsign: ${states_json[i][1]}<br>
+                            Country: ${states_json[i][2]}<br>
+                            Altitude: ${states_json[i][5]}<br>
+                            Velocity: ${states_json[i][8]}<br>
+                            <button onclick="resetZoom()">Reset Zoom</button>
+                        `);
+
+                        markers.addLayer(marker);
+                    }
+                }
+            }
+            mymap.addLayer(markers);
         }
 
 
