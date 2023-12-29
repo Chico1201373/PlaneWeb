@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,46 +9,99 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        #map {
+            height: 600px;
+            width: 1300px;
+            border: 2px solid #000;
+            margin: auto; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .error-message, .success-message {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .error-message {
+            color: red;
+            background-color: #ffe5e5;
+        }
+
+        .success-message {
+            color: green;
+            background-color: #e5ffe5;
+        }
+
+        h2 {
+            margin-bottom: 10px;
+        }
+
+        #successMessage, #errorMessage {
+            margin-bottom: 10px;
+        }
+
+        input[type="text"] {
+            padding: 5px;
+            margin-right: 5px;
+            margin-bottom: 5px;
+            
+        }
+
+        button {
+            padding: 5px 10px;
+            cursor: pointer;
+            margin-bottom: 5px;
+            margin-top: 5px;
+        }
+
+        #filter-section {
+            margin-bottom: 20px;
+        }
+    </style>
 </head>
 <body>
-
-    {% if error_message %}
-        <div style="color: red;">{{ error_message }}</div>
-    {% endif %}
-
-    {% if success_message %}
-        <div style="color: green;">{{ success_message }}</div>
-    {% endif %}
-
     <h2>Flight States Map</h2>
-    <div id="successMessage"></div>
+    <div class="error-message" id="errorMessage"></div>
+    <div class="success-message" id="successMessage"></div>
 
-    <div id="errorMessage"></div>
-    <div>
-        <h3>Get by ICAO24</h3>
-        <label for="icao24Input">ICAO24:</label>
-        <input type="text" id="icao24Input">
-        <button onclick="getByICAO24()">Get Info</button>
-        <button onclick="resetFilter()">Reset Filter</button>
+    <div id="filter-section">
+        <div>
+            <label for="icao24Input">ICAO24:</label>
+            <input type="text" id="icao24Input">
+            <button onclick="getByICAO24()">Get Info</button>
+            <button onclick="resetFilter()">Reset Filter</button>
+        </div>
+
+        <div>
+            <label for="countrySelect">Filter planes by country:</label>
+            <select id="countrySelect" onchange="filterPlanes()">
+                <option value="Todos os aviões">Todos os aviões</option>
+                {% for country in countries %}
+                    <option value="{{ country }}">{{ country }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div>
+            <button onclick="atualizarDados()">Atualizar Dados</button>
+        </div>
     </div>
-    <div>
-        <label for="countrySelect">Filter planes by country:</label>
-        <select id="countrySelect" onchange="filterPlanes()">
-            <option value="Todos os aviões">Todos os aviões</option>
-            {% for country in countries %}
-            <option value="{{ country }}">{{ country }}</option>
-            {% endfor %}
-        </select>
-    </div>
 
-    <div>
-        <button onclick="atualizarDados()">Atualizar Dados</button>
-    </div>
-    <div id="map" style="height: 750px;"></div>
+    <div id="map"></div>
 
-
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
     <script>
         var southWest = L.latLng(-90, -180);
         var northEast = L.latLng(90, 180);
@@ -249,3 +303,4 @@
     </script>
 </body>
 </html>
+
